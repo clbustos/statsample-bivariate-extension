@@ -2,6 +2,11 @@ History.txt
 Manifest.txt
 README.txt
 Rakefile
+data/tetmat_matrix.txt
+data/tetmat_test.txt
+lib/statsample/bivariate/extension_version.rb
 lib/statsample/bivariate/polychoric.rb
 lib/statsample/bivariate/tetrachoric.rb
 spec/spec_helper.rb
+spec/statsample/bivariate/polychoric_spec.rb
+spec/statsample/bivariate/tetrachoric_spec.rb

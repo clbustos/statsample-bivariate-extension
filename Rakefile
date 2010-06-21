@@ -4,6 +4,8 @@
 require 'rubygems'
 require 'hoe'
 
+Hoe.plugin :git
+
 $:.unshift(File.dirname(__FILE__)+"/lib")
 
 require 'statsample/bivariate/extension_version.rb'

@@ -1,8 +1,11 @@
 $:.unshift(File.dirname(__FILE__)+"/../../")
 require 'spec_helper'
 
-describe Statsample::Bivariate::Tetrachoric do
-  it "should return correct tetrachoric_matrix" do
+describe "Statsample::Bivariate tetrachoric extensions" do
+  it "should respond to tetrachoric method" do
+    Statsample::Bivariate.should respond_to(:tetrachoric)
+  end
+  it "should return correct tetrachoric_matrix"do
     ds=Statsample::PlainText.read(File.dirname(__FILE__)+"/../../../data/tetmat_test.txt", %w{a b c d e})
     tcm_obs=Statsample::Bivariate.tetrachoric_correlation_matrix(ds)
     tcm_exp=Statsample::PlainText.read(File.dirname(__FILE__)+"/../../../data/tetmat_matrix.txt", %w{a b c d e}).to_matrix
@@ -13,47 +16,58 @@ describe Statsample::Bivariate::Tetrachoric do
     end
   end
   
-  it "should return similar values for tetrachoric and polychoric 2x2" do
-    2.times {
-      # Should be the same results as Tetrachoric for 2x2 matrix
-      matrix=Matrix[[150+rand(10),1000+rand(20)],[1000+rand(20),200+rand(20)]]
-      tetra = Statsample::Bivariate::Tetrachoric.new_with_matrix(matrix)
-      poly  = Statsample::Bivariate::Polychoric.new(matrix)
-      poly.compute_two_step_mle_drasgow_ruby
-      tetra.r.should be_close(poly.r,0.0001)
-      if Statsample.has_gsl?
-        poly.compute_two_step_mle_drasgow_gsl
-        tetra.r.should be_close(poly.r,0.0001)
-      else
-        skip "compute_two_step_mle_drasgow_gsl not tested (requires GSL)"
-      end
-    }
-  end
+end
 
-  it "should raise error on 0 row/column contingente table" do
+describe Statsample::Bivariate::Tetrachoric do
+  context "Polychoric 2x2 vs tetrachoric" do
+    before do
+      @matrix=Matrix[[150+rand(10),1000+rand(20)],[1000+rand(20),200+rand(20)]]
+      @tetra = Statsample::Bivariate::Tetrachoric.new_with_matrix(@matrix)
+      @poly  = Statsample::Bivariate::Polychoric.new(@matrix)
+    end
+    it "should return similar values for two step ruby" do
+      @poly.compute_two_step_mle_drasgow_ruby
+      @tetra.r.should be_close(@poly.r,0.0001)
+    end
+    if Statsample.has_gsl?
+      it "should return similar values for two step using gsl" do
+        @poly.compute_two_step_mle_drasgow_gsl
+        @tetra.r.should be_close(@poly.r,0.0001)
+      end
+    else
+      it "shouldn't use two step gsl without rb-gsl"
+    end
+  end
+  
+  
+  it "should raise error on contingence table without cases" do
     a,b,c,d=0,0,0,0
     
     lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(RuntimeError)
-    
+  end  
+  it "should raise error on contingence table without cases on a row" do
+  
     a,b,c,d=10,10,0,0
     
     lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(RuntimeError)
-    
+  end
+  it "should raise error on contingence table without cases on a column" do
     a,b,c,d=10,0,10,0
     lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(RuntimeError)
   end
-  it "should return correct value for perfect correlation" do
+  it "should return correct values for perfect correlation" do
     a,b,c,d=10,0,0,10
     tc  = Statsample::Bivariate::Tetrachoric.new(a,b,c,d)
     tc.r.should==1
     tc.se.should==0
   end
-  it "should return correct value for perfect inverse correlation" do 
+  it "should return correct values for perfect inverse correlation" do 
     a,b,c,d=0,10,10,0
     tc  = Statsample::Bivariate::Tetrachoric.new(a,b,c,d)
     tc.r.should==-1
     tc.se.should==0
   end
+  
   it "should return correct value for standard contingence table" do 
     a,b,c,d = 30,40,70,20
     tc  = Statsample::Bivariate::Tetrachoric.new(a,b,c,d)
