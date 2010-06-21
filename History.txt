@@ -1,0 +1,4 @@
+=== 0.13.0 / 2010-06-21
+
+* First independent version of statsample-bivariate-extension
+
