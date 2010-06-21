@@ -1,3 +1,6 @@
+=== 0.13.1 / 2010-06-21
+* Better specs. Bug fix on Manifest.txt
+
 === 0.13.0 / 2010-06-21
 
 * First independent version of statsample-bivariate-extension
