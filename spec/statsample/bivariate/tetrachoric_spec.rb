@@ -26,12 +26,12 @@ describe Statsample::Bivariate::Tetrachoric do
       @poly  = Statsample::Bivariate::Polychoric.new(@matrix)
     end
     it "should return similar values for two step ruby" do
-      @poly.compute_two_step_mle_drasgow_ruby
+      @poly.compute_two_step_mle_ruby
       @tetra.r.should be_close(@poly.r,0.0001)
     end
     if Statsample.has_gsl?
       it "should return similar values for two step using gsl" do
-        @poly.compute_two_step_mle_drasgow_gsl
+        @poly.compute_two_step_mle_gsl
         @tetra.r.should be_close(@poly.r,0.0001)
       end
     else

@@ -50,13 +50,13 @@ describe Statsample::Bivariate::Polychoric do
     @poly.threshold_x[1].should be_close(1.137  ,0.001)
   end
   it "should compute two step mle with ruby" do
-      @poly.compute_two_step_mle_drasgow_ruby
+      @poly.compute_two_step_mle_ruby
       check_two_step
   end
 
   it "compute two-step with gsl" do
     pending("requires rb-gsl") unless Statsample.has_gsl?
-    @poly.compute_two_step_mle_drasgow_gsl
+    @poly.compute_two_step_mle_gsl
     check_two_step
   end
  

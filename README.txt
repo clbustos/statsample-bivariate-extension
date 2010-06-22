@@ -11,7 +11,7 @@ Provides advanced bivariate statistics:
 == FEATURES/PROBLEMS:
 
 * Statsample::Bivariate::Polychoric class provides polychoric correlation
-* Statsample::Bivariate::Tetracoric class provides tetrachoric correlation
+* Statsample::Bivariate::Tetrachoric class provides tetrachoric correlation
 
 
 == SYNOPSIS:

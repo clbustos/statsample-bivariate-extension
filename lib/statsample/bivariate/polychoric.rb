@@ -42,14 +42,29 @@ module Statsample
     # the two undelying continuous variables (Drasgow, 2006)
     # 
     # According to Drasgow(2006), there are tree methods to estimate
-    # the polychoric correlation: 
-    #
-    # 1. Maximum Likehood Estimator
-    # 2. Two-step estimator 
-    # 3. Polychoric series estimate. 
+    # the polychoric correlation: ML Joint estimation, ML two-step estimation
+    # and polycoric series estimate. You can select 
+    # the estimation method with <tt>method</tt> attribute.
     # 
-    # By default, two-step estimation are used. You can select 
-    # the estimation method with method attribute. Joint estimate and polychoric series requires gsl library and rb-gsl. Joint estimate uses Olsson(1979) derivatives and two-step uses a derivative free method. 
+    # == ML Joint Estimation
+    # Requires gsl library and <tt>gsl</tt> gem.
+    # Joint estimation uses derivative based algorithm by default, based 
+    # on Ollson(1979). 
+    # There is available a derivative free algorithm available
+    # compute_one_step_mle_without_derivatives() , based loosely 
+    # on J.Fox R package 'polycor' algorithm.
+    # 
+    # == Two-step Estimation
+    #
+    # Default method. Uses a no-derivative aproach, based on J.Fox
+    # R package 'polycor'.
+    # 
+    # == Polychoric series estimate. 
+    # <b>Warning</b>: Result diverge a lot from Joint and two-step 
+    # calculation.
+    #
+    # Requires gsl library and <tt>gsl</tt> gem.
+    # Based on Martinson and Hamdam(1975) algorithm.  
     #
     # == Use
     #
@@ -90,19 +105,22 @@ module Statsample
       # See http://rb-gsl.rubyforge.org/min.html for reference.  
       attr_accessor :minimizer_type_two_step
       
-      # Minimizer type for joint estimate. Default "nmsimplex"
+      # Minimizer type for joint estimate, no derivative. Default "nmsimplex".
       # See http://rb-gsl.rubyforge.org/min.html for reference.  
-      attr_accessor :minimizer_type_joint
-      
+      attr_accessor :minimizer_type_joint_no_derivative
+
+      # Minimizer type for joint estimate, using derivative. Default "conjugate_pr".
+      # See http://rb-gsl.rubyforge.org/min.html for reference.        
+      attr_accessor :minimizer_type_joint_derivative
       
       # Method of calculation of polychoric series. 
       # <tt>:two_step</tt> used by default.
       # 
-      # :two_step:: two-step ML, based on code by Gegenfurtner(1992).
+      # :two_step:: two-step ML, based on code by J.Fox
       # :polychoric_series:: polychoric series estimate, using 
       #                      algorithm AS87 by Martinson and Hamdan (1975).
-      # :joint::             one-step ML, based on R package 'polycor'
-      #                      by J.Fox.
+      # :joint::             one-step ML, usign derivatives by Olsson (1979)
+      # 
       attr_accessor :method
       # Absolute error for iteration.
       attr_accessor :epsilon
@@ -113,21 +131,39 @@ module Statsample
       # Log of algorithm
       attr_reader :log
       
-      
+      # Model ll
       attr_reader :loglike_model
       
+      # Returns the polychoric correlation
+      attr_reader :r
+      # Returns the rows thresholds
+      attr_reader :alpha
+      # Returns the columns thresholds
+      attr_reader :beta
+      
+      dirty_writer :max_iterations, :epsilon, :minimizer_type_two_step, :minimizer_type_joint_no_derivative, :minimizer_type_joint_derivative, :method
+      dirty_memoize :r, :alpha, :beta
+      # Default method
       METHOD=:two_step
+      # Max number of iteratios
       MAX_ITERATIONS=300
+      # Epsilon 
       EPSILON=1e-6
+      # GSL unidimensional minimizer
       MINIMIZER_TYPE_TWO_STEP="brent"
-      MINIMIZER_TYPE_JOINT="nmsimplex"
+      # GSL multidimensional minimizer, derivative based
+      MINIMIZER_TYPE_JOINT_DERIVATIVE="conjugate_pr"
+      # GSL multidimensional minimizer, non derivative based
+      MINIMIZER_TYPE_JOINT_NO_DERIVATIVE="nmsimplex"
+      
+      # Create a Polychoric object, based on two vectors
       def self.new_with_vectors(v1,v2)
         Polychoric.new(Crosstab.new(v1,v2).to_matrix)
       end
       # Params:
-      # * matrix: Contingence table
-      # * opts: Any attribute
-
+      # * <tt>matrix</tt>: Contingence table
+      # * <tt>opts</tt>: Hash with options. Could be any 
+      # accessable attribute of object 
       def initialize(matrix, opts=Hash.new)
         @matrix=matrix
         @n=matrix.column_size
@@ -140,7 +176,9 @@ module Statsample
         @max_iterations=MAX_ITERATIONS
         @epsilon=EPSILON
         @minimizer_type_two_step=MINIMIZER_TYPE_TWO_STEP
-        @minimizer_type_joint=MINIMIZER_TYPE_JOINT
+        @minimizer_type_joint_no_derivative=MINIMIZER_TYPE_JOINT_NO_DERIVATIVE
+        @minimizer_type_joint_derivative=MINIMIZER_TYPE_JOINT_DERIVATIVE
+        
         @debug=false
         @iteration=nil
         opts.each{|k,v|
@@ -150,25 +188,17 @@ module Statsample
         @pd=nil
         compute_basic_parameters
       end
-      # Returns the polychoric correlation
-      attr_reader :r
-      # Returns the rows thresholds
-      attr_reader :alpha
-      # Returns the columns thresholds
-      attr_reader :beta
-      
-      dirty_writer :max_iterations, :epsilon, :minimizer_type_two_step, :minimizer_type_joint, :method
-      dirty_memoize :r, :alpha, :beta
+
       
       alias :threshold_x :alpha
       alias :threshold_y :beta
       
       
       # Start the computation of polychoric correlation
-      # based on attribute method
+      # based on attribute <tt>method</tt>.
       def compute
         if @method==:two_step
-          compute_two_step_mle_drasgow
+          compute_two_step_mle
         elsif @method==:joint
           compute_one_step_mle
         elsif @method==:polychoric_series
@@ -177,6 +207,8 @@ module Statsample
           raise "Not implemented"
         end
       end
+      
+      # :section: LL methods
       # Retrieve log likehood for actual data.
       def loglike_data
         loglike=0
@@ -238,6 +270,7 @@ module Statsample
         end
       end
       
+      # :section: Estimation methods
       
       # Computation of polychoric correlation usign two-step ML estimation.
       # 
@@ -249,23 +282,23 @@ module Statsample
       # * Gegenfurtner, K. (1992). PRAXIS: Brent's algorithm for function minimization. Behavior Research Methods, Instruments & Computers, 24(4), 560-564. Available on http://www.allpsych.uni-giessen.de/karl/pdf/03.praxis.pdf
       # * Uebersax, J.S. (2006). The tetrachoric and polychoric correlation coefficients. Statistical Methods for Rater Agreement web site. 2006. Available at: http://john-uebersax.com/stat/tetra.htm . Accessed February, 11, 2010
       #
-      def compute_two_step_mle_drasgow
+      def compute_two_step_mle
         if Statsample.has_gsl?
-          compute_two_step_mle_drasgow_gsl
+          compute_two_step_mle_gsl
         else
-          compute_two_step_mle_drasgow_ruby
+          compute_two_step_mle_ruby
         end
       end
       
-      # Depends on minimization algorithm. 
+      # Compute two step ML estimation using only ruby. 
       
-      def compute_two_step_mle_drasgow_ruby #:nodoc:
+      def compute_two_step_mle_ruby #:nodoc:
         
         f=proc {|rho|
           pr=Processor.new(@alpha,@beta, rho, @matrix)
           pr.loglike
         }
-        @log=_("Minimizing using GSL Brent method\n")
+        @log=_("Two step minimization using GSL Brent method (pure ruby)\n")
         min=Minimization::Brent.new(-0.9999,0.9999,f)
         min.epsilon=@epsilon
         min.expected=0
@@ -277,8 +310,9 @@ module Statsample
         
       end
       
+       # Compute two step ML estimation using gsl. 
       
-      def compute_two_step_mle_drasgow_gsl #:nodoc:
+      def compute_two_step_mle_gsl 
         
       fn1=GSL::Function.alloc {|rho|
         pr=Processor.new(@alpha,@beta, rho, @matrix)
@@ -321,7 +355,7 @@ module Statsample
       end
       
       
-      def compute_derivatives_vector(v,df)
+      def compute_derivatives_vector(v,df) # :nodoc:
         new_rho=v[0]
         new_alpha=v[1, @nr-1]
         new_beta=v[@nr, @nc-1]
@@ -339,15 +373,19 @@ module Statsample
           df[offset+i]=-pr.fd_loglike_b(i)  
         }
       end
-      
+      # Compute joint ML estimation. 
+      # Uses compute_one_step_mle_with_derivatives() by default.
       def compute_one_step_mle
         compute_one_step_mle_with_derivatives
       end
       
-      
+      # Compute Polychoric correlation with joint estimate, usign
+      # derivative based minimization method.
+      #
+      # Much faster than method without derivatives.
       def compute_one_step_mle_with_derivatives
         # Get initial values with two-step aproach
-        compute_two_step_mle_drasgow
+        compute_two_step_mle
         # Start iteration with past values
         rho=@r
         cut_alpha=@alpha
@@ -373,7 +411,7 @@ module Statsample
         my_func.set_params(parameters)      # parameters
         
         x = GSL::Vector.alloc(parameters.dup)
-        minimizer = GSL::MultiMin::FdfMinimizer.alloc('conjugate_pr',np)
+        minimizer = GSL::MultiMin::FdfMinimizer.alloc(minimizer_type_joint_derivative,np)
         minimizer.set(my_func, x, 1, 1e-3)
         
         iter = 0
@@ -409,14 +447,16 @@ module Statsample
         
       end
       
-      # Compute Polychoric correlation with joint estimate.
+      # Compute Polychoric correlation with joint estimate, usign
+      # derivative-less minimization method.
+      # 
       # Rho and thresholds are estimated at same time.
       # Code based on R package "polycor", by J.Fox.
       #
       
       def compute_one_step_mle_without_derivatives
         # Get initial values with two-step aproach
-        compute_two_step_mle_drasgow
+        compute_two_step_mle
         # Start iteration with past values
         rho=@r
         cut_alpha=@alpha
@@ -452,7 +492,7 @@ module Statsample
         ss = GSL::Vector.alloc(np)
         ss.set_all(1.0)
         
-        minimizer = GSL::MultiMin::FMinimizer.alloc(minimizer_type_joint,np)
+        minimizer = GSL::MultiMin::FMinimizer.alloc(minimizer_type_joint_no_derivative,np)
         minimizer.set(my_func, x, ss)
         
         iter = 0
