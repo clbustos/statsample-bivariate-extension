@@ -1,4 +1,5 @@
 require 'minimization'
+require 'statsample/bivariate/polychoric/processor'
 module Statsample
   module Bivariate
     # Calculate Polychoric correlation for two vectors.
@@ -76,64 +77,6 @@ module Statsample
     
     class Polychoric
       include Summarizable
-      class Processor
-        attr_reader :alpha, :beta, :rho
-        def initialize(alpha,beta,rho)
-          @alpha=alpha
-          @beta=beta
-          @nr=@alpha.size+1
-          @nc=@beta.size+1
-          @rho=rho
-          @pd=nil
-        end
-        def bipdf(i,j)
-           Distribution::NormalBivariate.pdf(a(i), b(j), rho)
-        end
-        def a(i)
-          i < 0 ? -100 : (i==@nr-1 ? 100 : alpha[i])
-        end
-        def b(j)
-          j < 0 ? -100 : (j==@nc-1 ? 100 : beta[j])
-        end
-        # Equation(10) from Olsson(1979)
-        def fd_loglike_cell_a(i,j,k)
-          if k==i
-            Distribution::NormalBivariate.pd_cdf_x(a(k),b(j), rho) - Distribution::NormalBivariate.pd_cdf_x(a(k),b(j-1),rho)
-          elsif k==(i-1)
-            -Distribution::NormalBivariate.pd_cdf_x(a(k),b(j),rho) + Distribution::NormalBivariate.pd_cdf_x(a(k),b(j-1),rho)
-          else
-            0
-          end
-          
-        end
-        # phi_ij for each i and j
-        # Uses equation(4) from Olsson(1979)
-        def pd
-          if @pd.nil?
-            @pd=@nr.times.collect{ [0] * @nc}
-            pc=@nr.times.collect{ [0] * @nc}
-            @nr.times do |i|
-            @nc.times do |j|
-             
-              if i==@nr-1 and j==@nc-1
-                @pd[i][j]=1.0
-              else
-                a=(i==@nr-1) ? 100: alpha[i]
-                b=(j==@nc-1) ? 100: beta[j]
-                #puts "a:#{a} b:#{b}"
-                @pd[i][j]=Distribution::NormalBivariate.cdf(a, b, rho)
-              end
-              pc[i][j] = @pd[i][j]
-              @pd[i][j] = @pd[i][j] - pc[i-1][j] if i>0
-              @pd[i][j] = @pd[i][j] - pc[i][j-1] if j>0
-              @pd[i][j] = @pd[i][j] + pc[i-1][j-1] if (i>0 and j>0)
-            end
-            end
-          end
-          @pd
-        end
-      end
-      
       include DirtyMemoize
       # Name of the analysis
       attr_accessor :name
@@ -258,133 +201,8 @@ module Statsample
       def chi_square_df
         (@nr*@nc)-@nc-@nr
       end
-
-
-
-
-      # Retrieve all cell probabilities for givens alpha, beta and rho
-      def cell_probabilities(alpha,beta,rho)
-        pd=@nr.times.collect{ [0] * @nc}
-        pc=@nr.times.collect{ [0] * @nc}
-        @nr.times do |i|
-          @nc.times do |j|
-           
-            if i==@nr-1 and j==@nc-1
-              pd[i][j]=1.0
-            else
-              a=(i==@nr-1) ? 100: alpha[i]
-              b=(j==@nc-1) ? 100: beta[j]
-              #puts "a:#{a} b:#{b}"
-              pd[i][j]=Distribution::NormalBivariate.cdf(a, b, rho)
-            end
-            pc[i][j] = pd[i][j]
-            pd[i][j] = pd[i][j] - pc[i-1][j] if i>0
-            pd[i][j] = pd[i][j] - pc[i][j-1] if j>0
-            pd[i][j] = pd[i][j] + pc[i-1][j-1] if (i>0 and j>0)
-          end
-        end
-        @pd=pd
-        pd
-      end
-      def loglike(alpha,beta,rho)
-        if rho.abs>0.9999
-          rho= (rho>0) ? 0.9999 : -0.9999
-        end
-        pr=Processor.new(alpha,beta,rho)
-        loglike=0
-
-        
-        @nr.times do |i|
-          @nc.times do |j|
-            res=pr.pd[i][j]+EPSILON
-            loglike+= @matrix[i,j]  * Math::log( res )
-          end
-        end
-        -loglike
-      end
-      # First derivate for rho
-      # Uses equation (9) from Olsson(1979)
-      def fd_loglike_rho(alpha,beta,rho)
-        if rho.abs>0.9999
-          rho= (rho>0) ? 0.9999 : -0.9999
-        end
-        total=0
-        pr=Processor.new(alpha,beta,rho)
-        @nr.times do |i|
-          @nc.times do |j|
-            pi=pr.pd[i][j] + EPSILON
-            total+= (@matrix[i,j] / pi)  * (pr.bipdf(i,j)-pr.bipdf(i-1,j)-pr.bipdf(i,j-1)+pr.bipdf(i-1,j-1))  
-          end
-        end
-        total
-      end
       
-      # First derivative for alpha_k
-      def fd_loglike_a(alpha,beta,rho,k)
-        fd_loglike_a_eq6(alpha,beta,rho,k)
-      end
-      # Uses equation (6) from Olsson(1979)
-      def fd_loglike_a_eq6(alpha,beta,rho,k)
-        if rho.abs>0.9999
-          rho= (rho>0) ? 0.9999 : -0.9999
-        end
-        pr=Processor.new(alpha,beta,rho)
-        total=0
-        pd=pr.pd
-        @nr.times do |i|
-          @nc.times  do |j|
-            total+=@matrix[i,j].quo(pd[i][j]+EPSILON) * pr.fd_loglike_cell_a(i,j,k)
-          end
-        end
-        total
-      end
-      # Uses equation(13) from Olsson(1979)
-      def fd_loglike_a_eq13(alpha,beta,rho,k)
-        if rho.abs>0.9999
-          rho= (rho>0) ? 0.9999 : -0.9999
-        end
-        pr=Processor.new(alpha,beta,rho)
-        total=0
-        a_k=pr.a(k)
-        pd=pr.pd
-        @nc.times do |j|
-          #puts "j: #{j}"
-          #puts "b #{j} : #{b.call(j)}"
-          #puts "b #{j-1} : #{b.call(j-1)}"
-
-          e_1=@matrix[k,j].quo(pd[k][j]+EPSILON) - @matrix[k+1,j].quo(pd[k+1][j]+EPSILON)
-          e_2=Distribution::Normal.pdf(a_k)
-          e_3=Distribution::Normal.cdf((pr.b(j)-rho*a_k).quo(Math::sqrt(1-rho**2))) - Distribution::Normal.cdf((pr.b(j-1)-rho*a_k).quo(Math::sqrt(1-rho**2)))
-          #puts "val #{j}: #{e_1} | #{e_2} | #{e_3}"
-          
-          total+= e_1*e_2*e_3
-        end
-        total
-      end
-      # First derivative for beta_m
-      # Uses equation(14) from Olsson(1979)
-      def fd_loglike_b(alpha,beta,rho,m)
-        if rho.abs>0.9999
-          rho= (rho>0) ? 0.9999 : -0.9999
-        end
-        pr=Processor.new(alpha,beta,rho)
-        total=0
-        b_m=pr.b m
-        pd=pr.pd
-        @nr.times do |i|
-          #puts "j: #{j}"
-          #puts "b #{j} : #{b.call(j)}"
-          #puts "b #{j-1} : #{b.call(j-1)}"
-
-          e_1=@matrix[i,m].quo(pd[i][m]+EPSILON) - @matrix[i,m+1].quo(pd[i][m+1]+EPSILON)
-          e_2=Distribution::Normal.pdf(b_m)
-          e_3=Distribution::Normal.cdf((pr.a(i)-rho*b_m).quo(Math::sqrt(1-rho**2))) - Distribution::Normal.cdf((pr.a(i-1)-rho*b_m).quo(Math::sqrt(1-rho**2)))
-          #puts "val #{j}: #{e_1} | #{e_2} | #{e_3}"
-          
-          total+= e_1*e_2*e_3
-        end
-        total
-      end
+      
       
       
       def compute_basic_parameters
@@ -442,7 +260,8 @@ module Statsample
       def compute_two_step_mle_drasgow_ruby #:nodoc:
         
         f=proc {|rho|
-          loglike(@alpha,@beta, rho)
+          pr=Processor.new(@alpha,@beta, rho, @matrix)
+          pr.loglike
         }
         @log=_("Minimizing using GSL Brent method\n")
         min=Minimization::Brent.new(-0.9999,0.9999,f)
@@ -459,8 +278,9 @@ module Statsample
       
       def compute_two_step_mle_drasgow_gsl #:nodoc:
         
-      fn1=GSL::Function.alloc {|rho| 
-        loglike(@alpha,@beta, rho)
+      fn1=GSL::Function.alloc {|rho|
+        pr=Processor.new(@alpha,@beta, rho, @matrix)
+        pr.loglike
       }
       @iteration = 0
       max_iter = @max_iterations
@@ -498,12 +318,32 @@ module Statsample
       @loglike_model=-gmf.f_minimum
       end
       
-      # Compute Polychoric correlation with joint estimate.
-      # Rho and thresholds are estimated at same time.
-      # Code based on R package "polycor", by J.Fox.
-      #
+      
+      def compute_derivatives_vector(v,df)
+        new_rho=v[0]
+        new_alpha=v[1, @nr-1]
+        new_beta=v[@nr, @nc-1]
+        if new_rho.abs>0.9999
+          new_rho= (new_rho>0) ? 0.9999 : -0.9999
+        end
+        pr=Processor.new(new_alpha,new_beta,new_rho,@matrix)
+        
+        df[0]=-pr.fd_loglike_rho
+        new_alpha.to_a.each_with_index {|v,i|
+          df[i+1]=-pr.fd_loglike_a(i)  
+        }
+        offset=new_alpha.size+1
+        new_beta.to_a.each_with_index {|v,i|
+          df[offset+i]=-pr.fd_loglike_b(i)  
+        }
+      end
       
       def compute_one_step_mle
+        compute_one_step_mle_with_derivatives
+      end
+      
+      
+      def compute_one_step_mle_with_derivatives
         # Get initial values with two-step aproach
         compute_two_step_mle_drasgow
         # Start iteration with past values
@@ -511,10 +351,82 @@ module Statsample
         cut_alpha=@alpha
         cut_beta=@beta
         parameters=[rho]+cut_alpha+cut_beta
+        np=@nc-1+@nr
+        
+        
+        loglike_f = Proc.new { |v, params|
+          new_rho=v[0]
+          new_alpha=v[1, @nr-1]
+          new_beta=v[@nr, @nc-1]
+          pr=Processor.new(new_alpha,new_beta,new_rho,@matrix)
+          pr.loglike
+        }
+        
+        loglike_df = Proc.new {|v, params, df |
+          compute_derivatives_vector(v,df)
+        }
+          
+        
+        my_func = GSL::MultiMin::Function_fdf.alloc(loglike_f,loglike_df, np)
+        my_func.set_params(parameters)      # parameters
+        
+        x = GSL::Vector.alloc(parameters.dup)
+        minimizer = GSL::MultiMin::FdfMinimizer.alloc('conjugate_pr',np)
+        minimizer.set(my_func, x, 1, 1e-3)
+        
+        iter = 0
+        message=""
+        begin_time=Time.new
+        begin
+          iter += 1
+          status = minimizer.iterate()
+          #p minimizer.f
+          #p minimizer.gradient
+          status = minimizer.test_gradient(1e-3)
+          if status == GSL::SUCCESS
+            total_time=Time.new-begin_time
+            message+="Joint MLE converged to minimum on %0.3f seconds at\n" % total_time
+          end
+          x = minimizer.x
+          message+= sprintf("%5d iterations", iter)+"\n";
+          message+= "args="
+          for i in 0...np do
+            message+=sprintf("%10.3e ", x[i])
+          end
+          message+=sprintf("f() = %7.3f\n"  , minimizer.f)+"\n";
+        end while status == GSL::CONTINUE and iter < @max_iterations
+        
+        @iteration=iter
+        @log+=message        
+        @r=minimizer.x[0]
+        @alpha=minimizer.x[1,@nr-1].to_a
+        @beta=minimizer.x[@nr,@nc-1].to_a
+        @loglike_model= -minimizer.minimum
+        
+        pr=Processor.new(@alpha,@beta,@r,@matrix)
+        p pr.hessian.inverse
+        
+      end
+      
+      # Compute Polychoric correlation with joint estimate.
+      # Rho and thresholds are estimated at same time.
+      # Code based on R package "polycor", by J.Fox.
+      #
+      
+      def compute_one_step_mle_without_derivatives
+        # Get initial values with two-step aproach
+        compute_two_step_mle_drasgow
+        # Start iteration with past values
+        rho=@r
+        cut_alpha=@alpha
+        cut_beta=@beta
+        parameters=[rho]+cut_alpha+cut_beta
+        np=@nc-1+@nr
+
         minimization = Proc.new { |v, params|
-         rho=v[0]
-         alpha=v[1, @nr-1]
-         beta=v[@nr, @nc-1]
+          new_rho=v[0]
+         new_alpha=v[1, @nr-1]
+         new_beta=v[@nr, @nc-1]
          
          #puts "f'rho=#{fd_loglike_rho(alpha,beta,rho)}"
          #(@nr-1).times {|k|
@@ -525,10 +437,12 @@ module Statsample
          #(@nc-1).times {|k|
          #  puts "f'b(#{k}) = #{fd_loglike_b(alpha,beta,rho,k)}"         
          #}
+         pr=Processor.new(new_alpha,new_beta,new_rho,@matrix)
          
-         loglike(alpha,beta,rho)
+         df=Array.new(np)
+         #compute_derivatives_vector(v,df)
+         pr.loglike
         }
-        np=@nc-1+@nr
         my_func = GSL::MultiMin::Function.alloc(minimization, np)
         my_func.set_params(parameters)      # parameters
         
@@ -542,12 +456,14 @@ module Statsample
         
         iter = 0
         message=""
+        begin_time=Time.new
         begin
           iter += 1
           status = minimizer.iterate()
           status = minimizer.test_size(@epsilon)
           if status == GSL::SUCCESS
-            message="Joint MLE converged to minimum at\n"
+            total_time=Time.new-begin_time
+            message="Joint MLE converged to minimum on %0.3f seconds at\n" % total_time
           end
           x = minimizer.x
           message+= sprintf("%5d iterations", iter)+"\n";
@@ -830,8 +746,8 @@ module Statsample
         end # 43
         raise "Error" if norts==0
         @r=pcorl
-        
-        @loglike_model=-loglike(@alpha, @beta, @r)
+        pr=Processor.new(@alpha,@beta,@r,@matrix)
+        @loglike_model=-pr.loglike
         
       end
       #Computes vector h(mm7) of orthogonal hermite...
@@ -878,6 +794,7 @@ module Statsample
           t.row([_("Threshold Y %d") % i, sprintf("%0.4f", val)])
         }
         section.add(t)
+        section.add(_("Iterations: %d") % @iteration)
         section.add(_("Test of bivariate normality: X2 = %0.3f, df = %d, p= %0.5f" % [ chi_square, chi_square_df, 1-Distribution::ChiSquare.cdf(chi_square, chi_square_df)])) 
         generator.parse_element(section)
       end
