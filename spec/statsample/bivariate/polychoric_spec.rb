@@ -30,9 +30,9 @@ describe Statsample::Bivariate::Polychoric do
 
     @poly.threshold_y[0].should be_close(-0.2421, 0.0001)
     @poly.threshold_y[1].should be_close(1.5938 ,0.0001)
+    @poly.chi_square.should be_close(11.54,0.01)
   end
   it "compute joint estimation (without derivative) using gsl" do
-    pending("hh")
     @poly.compute_one_step_mle_without_derivatives
     check_joint
 

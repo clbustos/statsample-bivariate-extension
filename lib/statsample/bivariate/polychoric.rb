@@ -45,11 +45,11 @@ module Statsample
     # the polychoric correlation: 
     #
     # 1. Maximum Likehood Estimator
-    # 2. Two-step estimator and 
+    # 2. Two-step estimator 
     # 3. Polychoric series estimate. 
     # 
     # By default, two-step estimation are used. You can select 
-    # the estimation method with method attribute. Joint estimate and polychoric series requires gsl library and rb-gsl.
+    # the estimation method with method attribute. Joint estimate and polychoric series requires gsl library and rb-gsl. Joint estimate uses Olsson(1979) derivatives and two-step uses a derivative free method. 
     #
     # == Use
     #
@@ -72,8 +72,10 @@ module Statsample
     #
     # == References 
     # 
-    # * Uebersax, J.S. (2006). The tetrachoric and polychoric correlation coefficients. Statistical Methods for Rater Agreement web site. 2006. Available at: http://john-uebersax.com/stat/tetra.htm . Accessed February, 11, 2010
     # * Drasgow F. (2006). Polychoric and polyserial correlations. In Kotz L, Johnson NL (Eds.), Encyclopedia of statistical sciences. Vol. 7 (pp. 69-74). New York: Wiley.
+    # * Olsson, U. (1979) Maximum likelihood estimation of the polychoric correlation coefficient. Psychometrika 44, 443-460.
+    # * Uebersax, J.S. (2006). The tetrachoric and polychoric correlation coefficients. Statistical Methods for Rater Agreement web site. 2006. Available at: http://john-uebersax.com/stat/tetra.htm . Accessed February, 11, 2010
+
     
     class Polychoric
       include Summarizable
@@ -404,7 +406,6 @@ module Statsample
         @loglike_model= -minimizer.minimum
         
         pr=Processor.new(@alpha,@beta,@r,@matrix)
-        p pr.hessian.inverse
         
       end
       
@@ -795,7 +796,7 @@ module Statsample
         }
         section.add(t)
         section.add(_("Iterations: %d") % @iteration)
-        section.add(_("Test of bivariate normality: X2 = %0.3f, df = %d, p= %0.5f" % [ chi_square, chi_square_df, 1-Distribution::ChiSquare.cdf(chi_square, chi_square_df)])) 
+        section.add(_("Test of bivariate normality: X^2 = %0.3f, df = %d, p= %0.5f" % [ chi_square, chi_square_df, 1-Distribution::ChiSquare.cdf(chi_square, chi_square_df)])) 
         generator.parse_element(section)
       end
     end

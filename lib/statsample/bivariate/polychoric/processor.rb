@@ -1,14 +1,10 @@
 module Statsample
   module Bivariate
     class Polychoric
-      # Provides statistics for a given combination of rho, alpha and betas
-      # without specification of explicit matrix.
-      # * p of each cell
-      # * First derivative for a_i
-      # * 
+      # Provides statistics for a given combination of rho, alpha and beta and contingence table.
       class Processor
         attr_reader :alpha, :beta, :rho, :matrix
-        EPSILON=1e-6
+        EPSILON=1e-10
         def initialize(alpha,beta,rho,matrix=nil)
           @alpha=alpha
           @beta=beta
@@ -39,9 +35,11 @@ module Statsample
         end
         
         def a(i)
+          raise "Index #{i} should be <= #{@nr-1}" if i>@nr-1
           i < 0 ? -100 : (i==@nr-1 ? 100 : alpha[i])
         end
         def b(j)
+          raise "Index #{j} should be <= #{@nc-1}" if j>@nc-1
           j < 0 ? -100 : (j==@nc-1 ? 100 : beta[j])
         end
         
@@ -55,8 +53,7 @@ module Statsample
         end
         # Equation(8) from Olsson(1979)
         def fd_loglike_cell_rho(i, j)
-
-          bipdf(a(i),b(j)) - bipdf(a(i-1),b(j)) - bipdf(a(i), b(j-1)) + bipdf(a(i-1), b(j-1))
+          bipdf(i,j) - bipdf(i-1,j) - bipdf(i, j-1) + bipdf(i-1, j-1)
         end
         # Equation(10) from Olsson(1979)
         def fd_loglike_cell_a(i, j, k)
@@ -138,7 +135,7 @@ module Statsample
           @nr.times do |i|
             @nc.times do |j|
               pi=pd[i][j] + EPSILON
-              total+= (@matrix[i,j] / pi)  * (bipdf(i,j)-bipdf(i-1,j)-bipdf(i,j-1)+bipdf(i-1,j-1))  
+              total+= (@matrix[i,j].quo(pi))  * (bipdf(i,j)-bipdf(i-1,j)-bipdf(i,j-1)+bipdf(i-1,j-1))  
             end
           end
           total
@@ -229,7 +226,7 @@ module Statsample
           total
         end
         # Returns the derivative correct according to order
-        def hessian_function(t,i,j)
+        def im_function(t,i,j)
           if t==0
             fd_loglike_cell_rho(i,j)
           elsif t>=1 and t<=@alpha.size
@@ -240,7 +237,7 @@ module Statsample
             raise "incorrect #{t}"
           end
         end
-        def hessian
+        def information_matrix
           total_n=@matrix.total_sum
           vars=@alpha.size+@beta.size+1
           matrix=vars.times.map { vars.times.map {0}}
@@ -249,14 +246,13 @@ module Statsample
               total=0
               (@nr-1).times do |i|
                 (@nc-1).times do |j|
-                  total+=(1.quo(pd[i][j]+EPSILON)) * hessian_function(m,i,j) * hessian_function(n,i,j)
+                  total+=(1.quo(pd[i][j]+EPSILON)) * im_function(m,i,j) * im_function(n,i,j)
                 end
               end
               matrix[m][n]=total_n*total
             end
           end
           m=::Matrix.rows(matrix)
-          m
            
         end
       end # Processor
