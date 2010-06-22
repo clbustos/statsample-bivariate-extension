@@ -1,3 +1,10 @@
+=== 0.13.3 / 2010-06-22
+
+* Bug fix on Processor.fd_loglike_cell_rho. 
+* Chi square added on spec. 
+* Olsson (1979) added on references
+* Derivative version of joint estimate operational
+
 === 0.13.1 / 2010-06-21
 * Better specs. Bug fix on Manifest.txt
 
