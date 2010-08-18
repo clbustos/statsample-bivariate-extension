@@ -18,7 +18,7 @@ describe Statsample::Bivariate::Polychoric::Processor do
     
   end
   it "should return informacion matrix" do
-    p @processor.information_matrix.inverse
+    @processor.information_matrix.inverse.should be_instance_of(::Matrix)
   end
   it "fd a loglike should be equal usign eq.6 and eq.13" do
     2.times {|k|

@@ -298,6 +298,7 @@ module Statsample
           pr=Processor.new(@alpha,@beta, rho, @matrix)
           pr.loglike
         }
+        
         @log=_("Two step minimization using GSL Brent method (pure ruby)\n")
         min=Minimization::Brent.new(-0.9999,0.9999,f)
         min.epsilon=@epsilon

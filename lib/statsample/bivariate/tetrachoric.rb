@@ -9,17 +9,28 @@ module Statsample
     # Tetrachoric correlation matrix.
     # Order of rows and columns depends on Dataset#fields order
     def self.tetrachoric_correlation_matrix(ds)
-      ds.collect_matrix do |row,col|
+      cache={}
+      matrix=ds.collect_matrix do |row,col|
         if row==col
           1.0
         else
           begin
-            tetrachoric(ds[row],ds[col])
+            if cache[[col,row]].nil?
+              r=tetrachoric(ds[row],ds[col])
+              cache[[row,col]]=r
+              r
+            else
+              cache[[col,row]]
+            end
           rescue RuntimeError
             nil
           end
         end
       end
+      
+      matrix.extend CovariateMatrix
+      matrix.fields=ds.fields
+      matrix
     end
     # Compute tetrachoric correlation.
     #
