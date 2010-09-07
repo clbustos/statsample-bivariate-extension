@@ -85,8 +85,7 @@ module Statsample
     # 
     # See extensive documentation on Uebersax(2002) and Drasgow(2006)
     #
-    # == References 
-    # 
+    # == Reference
     # * Drasgow F. (2006). Polychoric and polyserial correlations. In Kotz L, Johnson NL (Eds.), Encyclopedia of statistical sciences. Vol. 7 (pp. 69-74). New York: Wiley.
     # * Olsson, U. (1979) Maximum likelihood estimation of the polychoric correlation coefficient. Psychometrika 44, 443-460.
     # * Uebersax, J.S. (2006). The tetrachoric and polychoric correlation coefficients. Statistical Methods for Rater Agreement web site. 2006. Available at: http://john-uebersax.com/stat/tetra.htm . Accessed February, 11, 2010

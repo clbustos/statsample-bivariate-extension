@@ -61,17 +61,17 @@ module Statsample
     #   tc.threshold_y # threshold for y variable
     #   tc.threshold_x # threshold for x variable
     #
-    # == References:
-    #
+    # == Reference:
     # * Brown, MB. (1977) Algorithm AS 116: the tetrachoric correlation and its standard error. <em>Applied Statistics, 26</em>, 343-351.
     # * Drasgow F. (2006). Polychoric and polyserial correlations. In Kotz L, Johnson NL (Eds.), Encyclopedia of statistical sciences. Vol. 7 (pp. 69-74). New York: Wiley.
     # * Uebersax, J.S. (2006). The tetrachoric and polychoric correlation coefficients. Statistical Methods for Rater Agreement web site. 2006. Available at: http://john-uebersax.com/stat/tetra.htm . Accessed February, 11, 2010
 
     class Tetrachoric
+       RequerimentNotMeet=Class.new(Exception)
       include Summarizable
       attr_reader :r
       attr_accessor :name
-
+      
       TWOPI=Math::PI*2
       SQT2PI= 2.50662827
       RLIMIT = 0.9999
@@ -94,8 +94,8 @@ module Statsample
         v1a, v2a=Statsample.only_valid(v1,v2)
         v1a=v1a.dichotomize
         v2a=v2a.dichotomize
-        raise "v1 have only 0" if v1a.factors==[0]
-        raise "v2 have only 0" if v2a.factors==[0]
+        raise RequerimentNotMeet, "v1 have only 0" if v1a.factors==[0]
+        raise RequerimentNotMeet, "v2 have only 0" if v2a.factors==[0]
         a,b,c,d = 0,0,0,0
         v1a.each_index{|i|
           x,y=v1a[i],v2a[i]
@@ -172,7 +172,7 @@ module Statsample
         #        kdelta=4 MEANS TABLE HAS 0.0 ROW OR COLUMN, RUN IS TERMINATED
         #
 
-        raise "Rows and columns should have more than 0 items" if @kdelta==4
+        raise RequerimentNotMeet, "Rows and columns should have more than 0 items" if @kdelta==4
 
         #      GOTO (4, 1, 2 , 92), kdelta
         #
