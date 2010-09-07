@@ -4,10 +4,12 @@ README.txt
 Rakefile
 data/tetmat_matrix.txt
 data/tetmat_test.txt
+grab_references.rb
 lib/statsample/bivariate/extension_version.rb
 lib/statsample/bivariate/polychoric.rb
 lib/statsample/bivariate/polychoric/processor.rb
 lib/statsample/bivariate/tetrachoric.rb
+references.txt
 spec/spec.opts
 spec/spec_helper.rb
 spec/statsample/bivariate/polychoric_processor_spec.rb
