@@ -22,12 +22,12 @@ describe Statsample::Bivariate::Polychoric::Processor do
   end
   it "fd a loglike should be equal usign eq.6 and eq.13" do
     2.times {|k|
-      @processor.fd_loglike_a_eq6(k).should be_close @processor.fd_loglike_a_eq13(k), 1e-10
+      @processor.fd_loglike_a_eq6(k).should be_within(1e-10).of( @processor.fd_loglike_a_eq13(k))
     }
   end
   it "fd b loglike should be equal usign eq.6 and eq.14" do
     2.times {|m|
-      @processor.fd_loglike_b_eq6(m).should be_close @processor.fd_loglike_b_eq14(m), 1e-10
+      @processor.fd_loglike_b_eq6(m).should be_within(1e-10).of( @processor.fd_loglike_b_eq14(m))
     }
   end  
   it "fd rho should be equal usign fd_loglike_cell_rho and fd_loglike_rho" do

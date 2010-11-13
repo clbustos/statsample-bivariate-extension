@@ -2,7 +2,8 @@
 # -*- ruby -*-
 
 require 'rubygems'
-require 'spec/rake/spectask'
+require 'rspec'
+require 'rspec/core/rake_task'
 require 'hoe'
 
 Hoe.plugin :git
@@ -19,10 +20,12 @@ end
 
 
 desc "Run all spec with RCov"
-Spec::Rake::SpecTask.new('test_with_rcov') do |t|
-  t.spec_files = FileList['spec/**/*.rb']
-  t.rcov = true
-  t.rcov_opts = ['--exclude', 'spec']
+RSpec::Core::RakeTask.new do |t|
+  t.rspec_opts = ["-c", "-f progress", "-r ./spec/spec_helper.rb"]
+  t.pattern = 'spec/**/*_spec.rb'
+  #t.rcov = true
+  #t.rcov_opts = ['--exclude', 'spec']
+
 end
 
 # vim: syntax=ruby

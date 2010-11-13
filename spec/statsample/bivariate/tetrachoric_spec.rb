@@ -11,7 +11,7 @@ describe "Statsample::Bivariate tetrachoric extensions" do
     tcm_exp=Statsample::PlainText.read(File.dirname(__FILE__)+"/../../../data/tetmat_matrix.txt", %w{a b c d e}).to_matrix
     tcm_obs.row_size.times do |i|
       tcm_obs.column_size do |j|
-        tcm_obs[i,j].should be_close(tcm_exp[i,k], 0.00001)
+        tcm_obs[i,j].should be_within( 0.00001).of(tcm_exp[i,k])
       end
     end
   end
@@ -27,12 +27,12 @@ describe Statsample::Bivariate::Tetrachoric do
     end
     it "should return similar values for two step ruby" do
       @poly.compute_two_step_mle_ruby
-      @tetra.r.should be_close(@poly.r,0.0001)
+      @tetra.r.should be_within(0.0001).of(@poly.r)
     end
     if Statsample.has_gsl?
       it "should return similar values for two step using gsl" do
         @poly.compute_two_step_mle_gsl
-        @tetra.r.should be_close(@poly.r,0.0001)
+        @tetra.r.should be_within(0.0001).of(@poly.r)
       end
     else
       it "shouldn't use two step gsl without rb-gsl"
@@ -43,17 +43,17 @@ describe Statsample::Bivariate::Tetrachoric do
   it "should raise error on contingence table without cases" do
     a,b,c,d=0,0,0,0
     
-    lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(RuntimeError)
+    lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(Statsample::Bivariate::Tetrachoric::RequerimentNotMeet)
   end  
   it "should raise error on contingence table without cases on a row" do
   
     a,b,c,d=10,10,0,0
     
-    lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(RuntimeError)
+    lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(Statsample::Bivariate::Tetrachoric::RequerimentNotMeet)
   end
   it "should raise error on contingence table without cases on a column" do
     a,b,c,d=10,0,10,0
-    lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(RuntimeError)
+    lambda {Statsample::Bivariate::Tetrachoric.new(a,b,c,d)}.should raise_error(Statsample::Bivariate::Tetrachoric::RequerimentNotMeet)
   end
   it "should return correct values for perfect correlation" do
     a,b,c,d=10,0,0,10
@@ -71,10 +71,10 @@ describe Statsample::Bivariate::Tetrachoric do
   it "should return correct value for standard contingence table" do 
     a,b,c,d = 30,40,70,20
     tc  = Statsample::Bivariate::Tetrachoric.new(a,b,c,d)
-    tc.r.should be_close(-0.53980,0.0001)
-    tc.se.should be_close(0.09940,0.0001)
-    tc.threshold_x.should be_close(-0.15731, 0.0001)
-    tc.threshold_y.should be_close( 0.31864, 0.0001)
+    tc.r.should be_within(0.0001).of(-0.53980)
+    tc.se.should be_within(0.0001).of(0.09940)
+    tc.threshold_x.should be_within( 0.0001).of(-0.15731)
+    tc.threshold_y.should be_within( 0.0001).of( 0.31864)
   end
   it "should return equal values for dataset and crosstab inputs" do 
     x=%w{a a a a b b b a b b a a b b}.to_vector

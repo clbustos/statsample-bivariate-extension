@@ -24,13 +24,13 @@ describe Statsample::Bivariate::Polychoric do
     @poly.summary.size.should>0
   end
   def check_joint
-    @poly.r.should be_close(0.4192, 0.0001)
-    @poly.threshold_x[0].should be_close(-0.0297, 0.0001)
-    @poly.threshold_x[1].should be_close(1.1331, 0.0001)
+    @poly.r.should be_within( 0.0001).of(0.4192)
+    @poly.threshold_x[0].should be_within( 0.0001).of(-0.0297)
+    @poly.threshold_x[1].should be_within( 0.0001).of(1.1331)
 
-    @poly.threshold_y[0].should be_close(-0.2421, 0.0001)
-    @poly.threshold_y[1].should be_close(1.5938 ,0.0001)
-    @poly.chi_square.should be_close(11.54,0.01)
+    @poly.threshold_y[0].should be_within( 0.0001).of(-0.2421)
+    @poly.threshold_y[1].should be_within(0.0001).of(1.5938 )
+    @poly.chi_square.should be_within(0.01).of(11.54)
   end
   it "compute joint estimation (without derivative) using gsl" do
     @poly.compute_one_step_mle_without_derivatives
@@ -43,11 +43,11 @@ describe Statsample::Bivariate::Polychoric do
   end
   
   def check_two_step
-    @poly.r.should be_close(0.420, 0.001)
-    @poly.threshold_y[0].should be_close(-0.240 ,0.001)
-    @poly.threshold_x[0].should be_close(-0.027 ,0.001)
-    @poly.threshold_y[1].should be_close(1.578  ,0.001)
-    @poly.threshold_x[1].should be_close(1.137  ,0.001)
+    @poly.r.should be_within( 0.001).of(0.420)
+    @poly.threshold_y[0].should be_within(0.001).of(-0.240 )
+    @poly.threshold_x[0].should be_within(0.001).of(-0.027 )
+    @poly.threshold_y[1].should be_within(0.001).of(1.578  )
+    @poly.threshold_x[1].should be_within(0.001).of(1.137  )
   end
   it "should compute two step mle with ruby" do
       @poly.compute_two_step_mle_ruby
@@ -66,11 +66,11 @@ describe Statsample::Bivariate::Polychoric do
     @poly.method=:polychoric_series
     @poly.compute
     
-    @poly.r.should be_close(0.556, 0.001)
-    @poly.threshold_y[0].should be_close(-0.240 ,0.001)
-    @poly.threshold_x[0].should be_close(-0.027 ,0.001)
-    @poly.threshold_y[1].should be_close(1.578  ,0.001)
-    @poly.threshold_x[1].should be_close(1.137  ,0.001)
+    @poly.r.should be_within( 0.001).of(0.556)
+    @poly.threshold_y[0].should be_within(0.001).of(-0.240 )
+    @poly.threshold_x[0].should be_within(0.001).of(-0.027 )
+    @poly.threshold_y[1].should be_within(0.001).of(1.578  )
+    @poly.threshold_x[1].should be_within(0.001).of(1.137  )
   end
   
 end
