@@ -33,11 +33,14 @@ describe Statsample::Bivariate::Polychoric do
     @poly.chi_square.should be_within(0.01).of(11.54)
   end
   it "compute joint estimation (without derivative) using gsl" do
+    pending("requires rb-gsl") unless Statsample.has_gsl?
+    
     @poly.compute_one_step_mle_without_derivatives
     check_joint
-
   end
   it "compute joint estimation (with derivative) using gsl" do
+    pending("requires rb-gsl") unless Statsample.has_gsl?
+    
     @poly.compute_one_step_mle_with_derivatives
     check_joint
   end

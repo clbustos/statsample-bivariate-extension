@@ -306,6 +306,7 @@ module Statsample
         @log+=min.log.to_table.to_s
         @r=min.x_minimum
         @loglike_model=-min.f_minimum
+        @iteration=min.iterations
         puts @log if @debug
         
       end
