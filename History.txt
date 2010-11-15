@@ -1,3 +1,9 @@
+=== 0.16.0 / 2010-11-14
+* Bug fix: Specs work without gsl. Counts iterations when using only ruby
+* Updated specs to rspec 2
+* Updated Manifest.txt
+* Added grab_references to retrieve references on package
+
 === 0.13.4 / 2010-08-18
 
 * Added cache for tetrachoric correlation matrix
