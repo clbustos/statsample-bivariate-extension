@@ -1,3 +1,7 @@
+=== 0.16.1 / 2010-12-22
+
+* Added support for optimized tetrachoric correlation calculation. Update statsample-optimization before report any error, please.
+
 === 0.16.0 / 2010-11-14
 * Bug fix: Specs work without gsl. Counts iterations when using only ruby
 * Updated specs to rspec 2
