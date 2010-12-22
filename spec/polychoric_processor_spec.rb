@@ -9,16 +9,17 @@ describe Statsample::Bivariate::Polychoric::Processor do
      @processor=Statsample::Bivariate::Polychoric::Processor.new(@alpha,@beta,@rho,@matrix)
   end
   it "im_function  method should return correct values according to index" do
-    @processor.im_function(0,0,0).should==@processor.fd_loglike_cell_rho(0,0)
-    @processor.im_function(1,0,0).should==@processor.fd_loglike_cell_a(0,0,0)
-    @processor.im_function(2,0,0).should==@processor.fd_loglike_cell_a(0,0,1)
-    @processor.im_function(3,1,0).should==@processor.fd_loglike_cell_b(1,0,0)
-    @processor.im_function(4,0,1).should==@processor.fd_loglike_cell_b(0,1,1)
+    @processor.im_function(0,0,0).should eq @processor.fd_loglike_cell_rho(0,0)
+    @processor.im_function(1,0,0).should eq @processor.fd_loglike_cell_a(0,0,0)
+    @processor.im_function(2,0,0).should eq @processor.fd_loglike_cell_a(0,0,1)
+    @processor.im_function(3,1,0).should eq @processor.fd_loglike_cell_b(1,0,0)
+    @processor.im_function(4,0,1).should eq @processor.fd_loglike_cell_b(0,1,1)
     lambda {@processor.im_function(5)}.should raise_error
     
   end
   it "should return informacion matrix" do
-    @processor.information_matrix.inverse.should be_instance_of(::Matrix)
+    im=@processor.information_matrix
+    im.should be_instance_of(::Matrix)    
   end
   it "fd a loglike should be equal usign eq.6 and eq.13" do
     2.times {|k|

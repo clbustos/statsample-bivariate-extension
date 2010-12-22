@@ -17,15 +17,4 @@ Hoe.spec 'statsample-bivariate-extension' do
   self.developer('Claudio Bustos', 'clbustos_at_gmail.com')
 end
 
-
-
-desc "Run all spec with RCov"
-RSpec::Core::RakeTask.new do |t|
-  t.rspec_opts = ["-c", "-f progress", "-r ./spec/spec_helper.rb"]
-  t.pattern = 'spec/**/*_spec.rb'
-  #t.rcov = true
-  #t.rcov_opts = ['--exclude', 'spec']
-
-end
-
 # vim: syntax=ruby

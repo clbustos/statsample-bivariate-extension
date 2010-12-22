@@ -67,11 +67,16 @@ module Statsample
     # * Uebersax, J.S. (2006). The tetrachoric and polychoric correlation coefficients. Statistical Methods for Rater Agreement web site. 2006. Available at: http://john-uebersax.com/stat/tetra.htm . Accessed February, 11, 2010
 
     class Tetrachoric
-       RequerimentNotMeet=Class.new(Exception)
+      RequerimentNotMeet=Class.new(Exception)
       include Summarizable
+      # Value for tethrachoric correlation
       attr_reader :r
+      # Name on the analysis
       attr_accessor :name
-      
+      # Use ruby version of algorithm.
+      # By default, this attribute is set to false,
+      # and C version of algorithm is used
+      attr_accessor :ruby_engine
       TWOPI=Math::PI*2
       SQT2PI= 2.50662827
       RLIMIT = 0.9999
@@ -85,12 +90,12 @@ module Statsample
       X=[0,0.9972638618,  0.9856115115,  0.9647622556, 0.9349060759,  0.8963211558, 0.8493676137, 0.7944837960, 0.7321821187, 0.6630442669, 0.5877157572, 0.5068999089, 0.4213512761, 0.3318686023, 0.2392873623, 0.1444719616, 0.0483076657]
       W=[0, 0.0070186100,  0.0162743947,  0.0253920653, 0.0342738629,  0.0428358980,  0.0509980593, 0.0586840935,  0.0658222228,  0.0723457941, 0.0781938958, 0.0833119242, 0.0876520930, 0.0911738787, 0.0938443991, 0.0956387201, 0.0965400885]
       # Creates a Tetrachoric object based on a 2x2 Matrix.
-      def self.new_with_matrix(m)
-        Tetrachoric.new(m[0,0], m[0,1], m[1,0],m[1,1])
+      def self.new_with_matrix(m, opts=Hash.new)
+        Tetrachoric.new(m[0,0], m[0,1], m[1,0],m[1,1], opts)
       end
       # Creates a Tetrachoric object based on two vectors.
       # The vectors are dichotomized previously.
-      def self.new_with_vectors(v1,v2)
+      def self.new_with_vectors(v1,v2, opts=Hash.new)
         v1a, v2a=Statsample.only_valid(v1,v2)
         v1a=v1a.dichotomize
         v2a=v2a.dichotomize
@@ -104,7 +109,7 @@ module Statsample
           c+=1 if x==1 and y==0
           d+=1 if x==1 and y==1
         }
-        Tetrachoric.new(a,b,c,d)
+        Tetrachoric.new(a,b,c,d, opts)
       end
       # Standard error
       def se
@@ -138,20 +143,55 @@ module Statsample
       end
 
       # Creates a new tetrachoric object for analysis
-      def initialize(a,b,c,d)
+      def initialize(a,b,c,d, opts=Hash.new)
         @a,@b,@c,@d=a,b,c,d
-        @name=_("Tetrachoric correlation")
+        
+        opts_default={
+          :name=>_("Tetrachoric correlation"),
+          :ruby_engine=>false
+        }
+        
+        @opts=opts_default.merge opts
+        @opts.each{|k,v| self.send("#{k}=",v) if self.respond_to? k}
         #
         #       CHECK IF ANY CELL FREQUENCY IS NEGATIVE
         #
         raise "All frequencies should be positive" if  (@a < 0 or @b < 0 or @c < 0  or @d < 0)
         compute
       end
-      # Compute the tetrachoric correlation.
+      def compute
+        if !ruby_engine and Statsample::OPTIMIZED and Statsample::STATSAMPLE__.respond_to? :tetrachoric
+          compute_optimized
+        else
+          compute_ruby
+        end
+      end
+      # Compute the tetrachoric correlation 
+      def compute_optimized
+        check_frequencies        
+        t=Statsample::STATSAMPLE__.tetrachoric(@a,@b,@c,@d)
+        raise "Error on calculation of tetrachoric correlation: #{t['ifault']}" if t['ifault']>0
+        @r,@sdr,@itype,@ifault,@zab, @zac = t['r'],t['sdr'],t['itype'],t['ifault'], t['threshold_x'], t['threshold_y']
+      end
+      def check_frequencies
+        #
+        #       CHECK IF ANY FREQUENCY IS 0.0 AND SET kdelta
+        #
+        @kdelta = 1
+       
+        @kdelta  = 2 if (@a == 0 or @d == 0)
+        @kdelta += 2 if (@b == 0 or @c == 0)
+        #
+        #        kdelta=4 MEANS TABLE HAS 0.0 ROW OR COLUMN, RUN IS TERMINATED
+        #
+
+        raise RequerimentNotMeet, "Rows and columns should have more than 0 items" if @kdelta==4
+      end
+      # Compute the tetrachoric correlation using ruby
       # Called on object creation.
       #
-      def compute
-
+      def compute_ruby
+        check_frequencies
         #
         # INITIALIZATION
         #
@@ -160,19 +200,8 @@ module Statsample
         @sdr = 0
         @itype = 0
         @ifault = 0
-
-        #
-        #       CHECK IF ANY FREQUENCY IS 0.0 AND SET kdelta
-        #
-        @kdelta = 1
         delta  = 0
-        @kdelta  = 2 if (@a == 0 or @d == 0)
-        @kdelta += 2 if (@b == 0 or @c == 0)
-        #
-        #        kdelta=4 MEANS TABLE HAS 0.0 ROW OR COLUMN, RUN IS TERMINATED
-        #
-
-        raise RequerimentNotMeet, "Rows and columns should have more than 0 items" if @kdelta==4
+        
 
         #      GOTO (4, 1, 2 , 92), kdelta
         #
