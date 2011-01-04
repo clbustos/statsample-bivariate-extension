@@ -170,8 +170,8 @@ module Statsample
       def compute_optimized
         check_frequencies        
         t=Statsample::STATSAMPLE__.tetrachoric(@a,@b,@c,@d)
-        raise "Error on calculation of tetrachoric correlation: #{t['ifault']}" if t['ifault']>0
-        @r,@sdr,@itype,@ifault,@zab, @zac = t['r'],t['sdr'],t['itype'],t['ifault'], t['threshold_x'], t['threshold_y']
+        raise "Error on calculation of tetrachoric correlation: #{t[:ifault]}" if t[:ifault]>0
+        @r,@sdr,@itype,@ifault,@zab, @zac = t[:r],t[:sdr],t[:itype],t[:ifault], t[:threshold_x], t[:threshold_y]
       end
       def check_frequencies
         #

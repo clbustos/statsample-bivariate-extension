@@ -1,14 +1,17 @@
 $:.unshift(File.dirname(__FILE__)+"/../../")
-require 'spec_helper'
+require File.expand_path(File.dirname(__FILE__)+'/spec_helper')
 
 describe "Statsample::Bivariate tetrachoric extensions" do
+  before do
+	  @data_file=File.expand_path(File.dirname(__FILE__)+"/../data/tetmat_test.txt")
+  end
   it "should respond to tetrachoric method" do
     Statsample::Bivariate.should respond_to(:tetrachoric)
   end
   it "should return correct tetrachoric_matrix"do
-    ds=Statsample::PlainText.read(File.dirname(__FILE__)+"/../data/tetmat_test.txt", %w{a b c d e})
+    ds=Statsample::PlainText.read(@data_file, %w{a b c d e})
     tcm_obs=Statsample::Bivariate.tetrachoric_correlation_matrix(ds)
-    tcm_exp=Statsample::PlainText.read(File.dirname(__FILE__)+"/../data/tetmat_matrix.txt", %w{a b c d e}).to_matrix
+    tcm_exp=Statsample::PlainText.read(@data_file, %w{a b c d e}).to_matrix
     tcm_obs.row_size.times do |i|
       tcm_obs.column_size do |j|
         tcm_obs[i,j].should be_within( 0.00001).of(tcm_exp[i,k])
