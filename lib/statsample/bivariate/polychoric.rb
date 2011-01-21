@@ -140,6 +140,8 @@ module Statsample
       # Returns the columns thresholds
       attr_reader :beta
       
+      attr_reader :failed
+      
       dirty_writer :max_iterations, :epsilon, :minimizer_type_two_step, :minimizer_type_joint_no_derivative, :minimizer_type_joint_derivative, :method
       dirty_memoize :r, :alpha, :beta
       # Default method
@@ -185,6 +187,7 @@ module Statsample
         }
         @r=nil
         @pd=nil
+        @failed=false
         compute_basic_parameters
       end
 
@@ -435,6 +438,8 @@ module Statsample
             message+=sprintf("%10.3e ", x[i])
           end
           message+=sprintf("f() = %7.3f\n"  , minimizer.f)+"\n";
+        rescue => e
+          @failed=true
         end while status == GSL::CONTINUE and iter < @max_iterations
         
         @iteration=iter
@@ -819,26 +824,34 @@ module Statsample
       
       def report_building(generator) # :nodoc: 
         compute if dirty?
+        
+        
         section=ReportBuilder::Section.new(:name=>@name)
-        t=ReportBuilder::Table.new(:name=>_("Contingence Table"), :header=>[""]+(@n.times.collect {|i| "Y=#{i}"})+["Total"])
-        @m.times do |i|
-          t.row(["X = #{i}"]+(@n.times.collect {|j| @matrix[i,j]}) + [@sumr[i]])
+        
+        if @failed
+          section.add("Failed to converge")
+        else        
+          t=ReportBuilder::Table.new(:name=>_("Contingence Table"), :header=>[""]+(@n.times.collect {|i| "Y=#{i}"})+["Total"])
+          @m.times do |i|
+            t.row(["X = #{i}"]+(@n.times.collect {|j| @matrix[i,j]}) + [@sumr[i]])
+          end
+          t.hr
+          t.row(["T"]+(@n.times.collect {|j| @sumc[j]})+[@total])
+          section.add(t)
+          section.add(sprintf("r: %0.4f",r))
+          t=ReportBuilder::Table.new(:name=>_("Thresholds"), :header=>["","Value"])
+          threshold_x.each_with_index {|val,i|
+            t.row([_("Threshold X %d") % i, sprintf("%0.4f", val)])
+          }
+          threshold_y.each_with_index {|val,i|
+            t.row([_("Threshold Y %d") % i, sprintf("%0.4f", val)])
+          }
+          section.add(t)
+          section.add(_("Iterations: %d") % @iteration) if @iteration
+          section.add(_("Test of bivariate normality: X^2 = %0.3f, df = %d, p= %0.5f" % [ chi_square, chi_square_df, 1-Distribution::ChiSquare.cdf(chi_square, chi_square_df)])) 
+          generator.parse_element(section)
         end
-        t.hr
-        t.row(["T"]+(@n.times.collect {|j| @sumc[j]})+[@total])
-        section.add(t)
-        section.add(sprintf("r: %0.4f",r))
-        t=ReportBuilder::Table.new(:name=>_("Thresholds"), :header=>["","Value"])
-        threshold_x.each_with_index {|val,i|
-          t.row([_("Threshold X %d") % i, sprintf("%0.4f", val)])
-        }
-        threshold_y.each_with_index {|val,i|
-          t.row([_("Threshold Y %d") % i, sprintf("%0.4f", val)])
-        }
-        section.add(t)
-        section.add(_("Iterations: %d") % @iteration)
-        section.add(_("Test of bivariate normality: X^2 = %0.3f, df = %d, p= %0.5f" % [ chi_square, chi_square_df, 1-Distribution::ChiSquare.cdf(chi_square, chi_square_df)])) 
-        generator.parse_element(section)
+        
       end
     end
   end
