@@ -2,5 +2,6 @@
 coverage
 pkg
 tmp
+grab_references
 .autotest
 *~
