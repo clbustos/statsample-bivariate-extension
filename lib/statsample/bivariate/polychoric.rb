@@ -532,7 +532,7 @@ module Statsample
         pc=@nr.times.collect{ [0]*@nc}
         @nr.times { |i|
             @nc.times { |j|
-              pd[i][j]=Distribution::NormalBivariate.cdf(@alpha[i], @beta[j], rho)
+              pd[i][j]=Distribution::BivariateNormal.cdf(@alpha[i], @beta[j], rho)
               pc[i][j] = pd[i][j]
               pd[i][j] = pd[i][j] - pc[i-1][j] if i>0
               pd[i][j] = pd[i][j] - pc[i][j-1] if j>0

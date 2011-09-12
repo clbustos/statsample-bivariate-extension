@@ -16,7 +16,7 @@ module Statsample
         end
         
         def bipdf(i,j)
-           Distribution::NormalBivariate.pdf(a(i), b(j), rho)
+           Distribution::BivariateNormal.pdf(a(i), b(j), rho)
         end
         
         def loglike
@@ -111,7 +111,7 @@ module Statsample
                 a=(i==@nr-1) ? 100: alpha[i]
                 b=(j==@nc-1) ? 100: beta[j]
                 #puts "a:#{a} b:#{b}"
-                @pd[i][j]=Distribution::NormalBivariate.cdf(a, b, rho)
+                @pd[i][j]=Distribution::BivariateNormal.cdf(a, b, rho)
               end
               pc[i][j] = @pd[i][j]
               @pd[i][j] = @pd[i][j] - pc[i-1][j] if i>0

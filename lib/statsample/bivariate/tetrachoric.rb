@@ -265,8 +265,8 @@ module Statsample
         #        COMPUTE NORMAL DEVIATES FOR THE MARGINAL FREQUENCIES
         #        SINCE NO MARGINAL CAN BE 0.0, IE IS NOT CHECKED
         #
-        @zac = Distribution::Normal.p_value(@probac)
-        @zab = Distribution::Normal.p_value(@probab)
+        @zac = Distribution::Normal.p_value(@probac.to_f)
+        @zab = Distribution::Normal.p_value(@probab.to_f)
         @ss = Math::exp(-0.5 * (@zac ** 2 + @zab ** 2)).quo(TWOPI)
         #
         #        WHEN R IS 0.0, 1.0 OR -1.0, TRANSFER TO COMPUTE SDZERO
