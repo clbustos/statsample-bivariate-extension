@@ -47,4 +47,4 @@ This gem is a statsample dependency. If you want to install it separatly
 
 == LICENSE:
 
-GPL-2
+BSD 2-Clause (see LICENSE.txt)
